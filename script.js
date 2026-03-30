@@ -83,10 +83,50 @@ window.saveSnr = function(index) {
     if (allData[index]) {
         allData[index].snr = newValue;
         StorageManager.saveAll(allData);
-        alert(`✅ SNR "${newValue}" sparat för denna nedsättning.`);
+        showToast(`SNR "${newValue}" sparat för denna nedsättning.`, 'success');
     } else {
-        alert("Ett fel uppstod: Kunde inte hitta posten.");
+        showToast("Ett fel uppstod: Kunde inte hitta posten.", 'error');
     }
+};
+
+// ==========================================
+// TOAST NOTIFICATIONS (Ersätter alert)
+// ==========================================
+window.showToast = function(message, type = 'success') {
+    // 1. Skapa en container om den inte redan finns i DOM
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    // 2. Skapa själva toast-rutan
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    // Välj ikon baserat på typ
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+
+    // Lägg in HTML i toasten
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+    `;
+
+    // 3. Lägg till toasten i containern så den syns
+    container.appendChild(toast);
+
+    // 4. Sätt en timer för att ta bort den efter 4 sekunder
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease forwards';
+        // Vänta tills animationen är klar innan vi tar bort elementet från DOM
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 4000); 
 };
 
 
@@ -398,8 +438,9 @@ function initPlaneraPage() {
             console.log(`Meddelande: \n${mailBody}`);
             console.groupEnd();
             
-            const msg = `✅ BESTÄLLNING SKICKAD!\n\nEn bekräftelse har skickats till planerare: ${userName}.\n(Simulerad e-post till: ${userEmail})`;
-            alert(msg);
+            // Visa snygg toast istället för alert
+            const msg = `Beställning skickad!\nEn bekräftelse har skickats till ${userName}.`;
+            showToast(msg, 'success');
             
             // Återställ formuläret
             form.reset();
@@ -439,8 +480,8 @@ function initSavedPage() {
 
     window.copySavedData = function() {
         navigator.clipboard.writeText(JSON.stringify(data, null, 4))
-            .then(() => alert("Data kopierad till urklipp!"))
-            .catch(err => alert("Kunde inte kopiera data."));
+            .then(() => showToast("Data kopierad till urklipp!", "success"))
+            .catch(err => showToast("Kunde inte kopiera data.", "error"));
     };
 }
 
@@ -629,6 +670,7 @@ window.toggleDetails = (idx) => {
         if(confirm("Vill du verkligen ta bort denna post permanent?")) {
             StorageManager.remove(idx);
             renderDeleteList();
+            showToast("Post raderad", "success");
         }
     };
 
@@ -636,6 +678,7 @@ window.toggleDetails = (idx) => {
         if(confirm("VARNING: Detta tar bort ALLA sparade poster!")) {
             StorageManager.clear();
             renderDeleteList();
+            showToast("Alla poster raderade", "success");
         }
     };
 
@@ -777,7 +820,7 @@ function setupProjekteraUI() {
             entryToUpdate.projectedDate = new Date().toISOString();
 
             StorageManager.saveAll(currentData);
-            alert("✅ Projektering sparad! Status ändrad till 'Projekterad'.");
+            showToast("Projektering sparad! Status ändrad till 'Projekterad'.", "success");
 
             const selectedOption = select.options[select.selectedIndex];
             if (selectedOption) selectedOption.innerHTML = selectedOption.innerHTML.replace("⭕", "⚒️");
@@ -980,7 +1023,7 @@ function initGranskaPage() {
         entry.granskadDatum = new Date().toISOString();
         
         StorageManager.saveAll(allData);
-        alert("✅ Nedsättningen är nu granskad och Aktiv!");
+        showToast("Nedsättningen är nu granskad och Aktiv!", "success");
         window.renderGranskaList();
     };
 
@@ -1339,7 +1382,9 @@ function initUsersPage() {
     window.exportUsersToCode = () => {
         const jsonContent = JSON.stringify(userList, null, 4);
         const jsCode = `// Kopiera allt nedan och ersätt "DEFAULT_USERS" i din script.js:\n\nconst DEFAULT_USERS = ${jsonContent};`;
-        navigator.clipboard.writeText(jsCode).then(() => { alert("✅ Koden kopierad till urklipp!"); }).catch(err => { console.error('Kunde inte kopiera', err); });
+        navigator.clipboard.writeText(jsCode)
+            .then(() => { showToast("Koden kopierad till urklipp!", "success"); })
+            .catch(err => { showToast("Kunde inte kopiera", "error"); });
     };
     renderTable();
 }
