@@ -438,3 +438,61 @@ button {
 }
 .test-users ul {
     margin: 5px 0 0
+}
+
+/* =========================================
+   TOAST NOTIFICATIONS
+   ========================================= */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none; /* Så man kan klicka igenom om det behövs */
+}
+
+.toast {
+    min-width: 250px;
+    max-width: 400px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease forwards;
+    border-left: 5px solid var(--primary-color);
+    pointer-events: auto;
+}
+
+/* Färgvarianter för olika typer av notiser */
+.toast-success { border-left-color: var(--success-color); }
+.toast-error { border-left-color: var(--danger-color); }
+.toast-info { border-left-color: var(--primary-color); }
+
+.toast-icon {
+    font-size: 20px;
+}
+
+.toast-message {
+    line-height: 1.4;
+    white-space: pre-wrap; /* Behåller radbrytningar från din text */
+}
+
+/* Animationer */
+@keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
