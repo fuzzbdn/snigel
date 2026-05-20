@@ -790,6 +790,9 @@ function setupProjekteraUI() {
 
             const currentData = StorageManager.getAll();
             const entryToUpdate = currentData[currentEntryIndex];
+            
+            // Hämta den inloggade användaren för att spara som projektör
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
 
             entryToUpdate.stallverkstyp = document.getElementById("stallverkstyp").value;
             entryToUpdate.rbc = document.getElementById("rbc").value;
@@ -818,6 +821,20 @@ function setupProjekteraUI() {
 
             entryToUpdate.status = "projekterad";
             entryToUpdate.projectedDate = new Date().toISOString();
+            entryToUpdate.projekteradAv = currentUser.name || "Okänd";
+
+            // Läs av tabellen för säkerhetsgranskning (rad 2 i kontrolltabellen)
+            const tableRows = document.querySelectorAll(".control-table tbody tr");
+            if (tableRows.length >= 2) {
+                const sakerhetsDatum = tableRows[1].querySelectorAll("input")[0].value;
+                const sakerhetsSign = tableRows[1].querySelectorAll("input")[1].value;
+                
+                if (sakerhetsSign) {
+                    entryToUpdate.sakerhetsgranskadAv = sakerhetsSign;
+                    // Om datum skrevs in, formatera det. Annars, ta nuvarande tid.
+                    entryToUpdate.sakerhetsgranskadDatum = sakerhetsDatum ? new Date(sakerhetsDatum).toISOString() : new Date().toISOString();
+                }
+            }
 
             StorageManager.saveAll(currentData);
             showToast("Projektering sparad! Status ändrad till 'Projekterad'.", "success");
@@ -1129,10 +1146,18 @@ window.renderGranskaList = () => {
         if(!confirm("Jag intygar att denna nedsättning är korrekt granskad.")) return;
         const allData = StorageManager.getAll();
         const entry = allData[index];
+        const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const nowIso = new Date().toISOString();
         
         entry.status = "granskad";
+        
+        // Sätt granskningssteg
         entry.granskadAv = currentUser.name || "Okänd";
-        entry.granskadDatum = new Date().toISOString();
+        entry.granskadDatum = nowIso;
+        
+        // Sätt ibruktagandesteg samtidigt i detta flöde
+        entry.ibruktagenAv = currentUser.name || "Okänd";
+        entry.ibruktagenDatum = nowIso;
         
         StorageManager.saveAll(allData);
         showToast("Nedsättningen är nu granskad och Aktiv!", "success");
@@ -1162,6 +1187,12 @@ function initAktivaPage() {
             return;
         }
 
+        // Hjälpfunktion för att formatera ISO-sträng till "ÅÅÅÅ-MM-DD HH:MM"
+        const formatDateTime = (isoString) => {
+            if (!isoString) return '-';
+            return isoString.replace('T', ' ').slice(0, 16);
+        };
+
         active.forEach(e => {
             const div = document.createElement("div");
             div.style.cssText = "background:#fff; border-left: 6px solid #28a745; border-radius:8px; margin-bottom:20px; padding:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.08);";
@@ -1171,10 +1202,8 @@ function initAktivaPage() {
             
             const currentSnr = e.snr || ""; 
 
-            // --- NY LOGIK FÖR ATT VISA BÅDE STRÄCKA OCH KM ---
             const kmPos = `${e.start_km}+${e.start_m} - ${e.slut_km}+${e.slut_m}`;
             
-            // Om "nedstracka" finns: Visa "Namn | Km". Annars bara "Km".
             const displayStracka = e.nedstracka 
                 ? `${e.nedstracka} <span style="color:#ccc; margin:0 5px;">|</span> ${kmPos}` 
                 : kmPos;
@@ -1202,15 +1231,19 @@ function initAktivaPage() {
 
                     </div>
                     
-                    <div style="flex: 1; border-left:1px solid #eee; padding-left:20px; margin-left:20px; min-width: 200px;">
+                    <div style="flex: 1; border-left:1px solid #eee; padding-left:20px; margin-left:20px; min-width: 250px;">
                         <p style="font-size:0.9em; color:#555; margin-bottom:5px;"><strong>Giltighetstid:</strong></p>
-                        <div style="font-family:monospace; font-size:1.1em; color:#333;">
-                            Från: ${validFrom}<br>
-                            Till: ${validTo}
+                        <div style="font-family:monospace; font-size:1.1em; color:#333; margin-bottom:15px;">
+                            Från: ${validFrom.replace('T', ' ')}<br>
+                            Till: ${validTo.replace('T', ' ')}
                         </div>
-                        <div style="margin-top:15px; font-size:0.85em; color:#888;">
-                            Granskad av: ${e.granskadAv || '-'} <br>
-                            Datum: ${e.granskadDatum ? e.granskadDatum.slice(0,10) : '-'}
+                        
+                        <p style="font-size:0.9em; color:#555; margin-bottom:5px;"><strong>Processteg & Logg:</strong></p>
+                        <div style="font-size:0.85em; color:#666; line-height:1.5;">
+                            <div>🛠️ <strong>Projekterad av:</strong> ${e.projekteradAv || e.planerare || '-'} <br> <span style="color:#999; font-family:monospace;">${formatDateTime(e.projectedDate)}</span></div>
+                            <div style="margin-top:4px;">🛡️ <strong>Säkerhetsgranskad av:</strong> ${e.sakerhetsgranskadAv || '-'} <br> <span style="color:#999; font-family:monospace;">${formatDateTime(e.sakerhetsgranskadDatum)}</span></div>
+                            <div style="margin-top:4px;">👁️ <strong>Granskad av:</strong> ${e.granskadAv || '-'} <br> <span style="color:#999; font-family:monospace;">${formatDateTime(e.granskadDatum)}</span></div>
+                            <div style="margin-top:4px;">🚀 <strong>Ibruktagen av:</strong> ${e.ibruktagenAv || '-'} <br> <span style="color:#999; font-family:monospace;">${formatDateTime(e.ibruktagenDatum)}</span></div>
                         </div>
                     </div>
                 </div>
